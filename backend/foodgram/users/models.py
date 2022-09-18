@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import UniqueConstraint
 
 
 class CustomUser(AbstractUser):
@@ -46,3 +47,22 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class Subscribe(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='follower'
+    )
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='subscribing_to'
+    )
+
+    class Meta:
+        UniqueConstraint(
+            fields=['user', 'author'],
+            name='unique_subscribing'
+        )

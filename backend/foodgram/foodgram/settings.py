@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'rest_framework.authtoken',
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
@@ -27,6 +28,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -121,6 +123,7 @@ AUTH_USER_MODEL = 'users.CustomUser'
 DJOSER = {
     # "USER_ID_FIELD": "username",
     'LOGIN_FIELD': 'email',
+    'HIDE_USERS': False,
 }
 
 # DJOSER = {
@@ -139,5 +142,10 @@ DJOSER = {
 # }
 
 # CORS HEADERS
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
+# CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOW_CREDENTIALS = True
+
+CORS_URLS_REGEX = r'^/api/.*$' 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+] 
