@@ -20,7 +20,7 @@ from users.models import CustomUser, Subscribe
 from users.serializers import CustomUserCreateSerializer, CustomUserListSerializer, SubscribeSerializer
 
 User = CustomUser
-
+ 
 
 class CustomUserViewSet(UserViewSet):
     permission_classes = (IsAuthenticated,)
@@ -75,15 +75,16 @@ class CustomUserViewSet(UserViewSet):
     def subscriptions(self, request):
         user = request.user
         queryset = Subscribe.objects.filter(user=user)
-        # pages = self.paginate_queryset(queryset)
         serializer = SubscribeSerializer(
             queryset,
-            # pages,
             many=True,
             context={'request': request}
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
-        # return self.get_paginated_response(serializer.data)
+
+
+
+
 
 
 

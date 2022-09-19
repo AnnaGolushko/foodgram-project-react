@@ -66,3 +66,6 @@ class Subscribe(models.Model):
             fields=['user', 'author'],
             name='unique_subscribing'
         )
+
+    def __str__(self):
+        return f' User - {self.user.username}. Subscribed to - {self.author.username}.'
