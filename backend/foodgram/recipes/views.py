@@ -17,9 +17,9 @@ from djoser.views import UserViewSet
 from djoser.conf import settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Ingredient
+from .models import Ingredient, Tag
 from users.models import CustomUser
-from .serializers import IngredientSerializer
+from .serializers import IngredientSerializer, TagSerializer
 
 User = CustomUser
 
@@ -30,3 +30,9 @@ class IngredientsViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     # filter_backends = (IngredientSearchFilter,)
     # search_fields = ('^name',)
+
+
+class TagsViewSet(ReadOnlyModelViewSet):
+    # permission_classes = (IsAdminOrReadOnly,)
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
