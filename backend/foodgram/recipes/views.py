@@ -19,7 +19,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe
 from users.models import CustomUser
-from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer # , RecipeWriteSerializer
+from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer
 
 User = CustomUser
 
@@ -47,7 +47,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
             return RecipeReadSerializer
-        # return RecipeWriteSerializer
+        return RecipeWriteSerializer
 
     # def perform_create(self, serializer):
     #     serializer.save(author=self.request.user)

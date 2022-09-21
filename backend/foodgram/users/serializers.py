@@ -2,8 +2,10 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from djoser.serializers import UserCreateSerializer, UserSerializer
 
-from users.models import CustomUser
-from users.models import Subscribe
+from users.models import CustomUser, Subscribe
+from recipes.models import Recipe
+from recipes.serializers import ShortRecipeReadSerializer
+
 
 class CustomUserCreateSerializer(UserCreateSerializer):
 
@@ -56,22 +58,20 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, data):
         return 1
+        
+        # serializer = serializers.ListSerializer(child=ShortRecipeReadSerializer())
+        # return serializer.to_representation(data.recipes.all())
 
-    def get_recipes_count(self, data):
-        return 2
+    def get_recipes_count(self, obj):
+        # в obj получаем объект модели Subscribe, поскольку во ViewSet сохраняем Subscibe-подписки через этот сериализатор
+        person = obj.author.id
+        return Recipe.objects.filter(author=person).count()
 
-
-
-
-# recipes_count = serializers.SerializerMethodField('get_recipes_count')
     # def get_recipes(self, data):
     #     recipes_limit = self.context.get('request').GET.get('recipes_limit')
     #     recipes = (
     #         data.recipes.all()[:int(recipes_limit)]
     #         if recipes_limit else data.recipes
     #     )
-    #     serializer = serializers.ListSerializer(child=RecipeSerializer())
+    #     serializer = serializers.ListSerializer(child=ShortRecipeReadSerializer())
     #     return serializer.to_representation(recipes)
-
-    # def get_recipes_count(self, data):
-    #     return Recipe.objects.filter(author=data).count()

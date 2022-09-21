@@ -128,4 +128,5 @@ class IngredientAmountInRecipe(models.Model):
         ]
     
     def __str__(self):
-        return f'{self.ingredients.name} в рецепте {self.recipe.name}'
+        return f'ID {self.id} - Рецепт <{self.recipe.name}> - Ингредиент <{self.ingredients.name}> - Кол-во <{self.amount}> '
+

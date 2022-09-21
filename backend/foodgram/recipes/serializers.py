@@ -3,8 +3,9 @@ from rest_framework.validators import UniqueValidator
 from drf_base64.fields import Base64ImageField
 from django.db.models import F
 
+from users.serializers import CustomUserListSerializer
 from users.models import CustomUser, Subscribe
-from users.serializers import CustomUserCreateSerializer, CustomUserListSerializer, SubscribeSerializer
+
 from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe
 
 
@@ -20,35 +21,30 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'color', 'slug']
 
 
-class RecipeIngredientsReadSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source='ingredient.id')
-    name = serializers.CharField(source='ingredient.name')
-    measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit'
-    )
-    amount = serializers.IntegerField()
-
-    class Meta:
-        model = IngredientAmountInRecipe
-        fields = ('id', 'name', 'measurement_unit', 'amount')
-
-
-class IngredientsEditSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField()
-    amount = serializers.IntegerField()
-
-    class Meta:
-        model = Ingredient
-        fields = ('id', 'amount',)
-
-
-# class AddIngredientToRecipeSerializer(serializers.ModelSerializer):
-#     id = serializers.IntegerField()
-#     ingredient = serializers.ReadOnlyField(source='ingredient.name')
+# class RecipeIngredientsReadSerializer(serializers.ModelSerializer):
+#     id = serializers.IntegerField(source='ingredient.id')
+#     name = serializers.CharField(source='ingredient.name')
+#     measurement_unit = serializers.CharField(
+#         source='ingredient.measurement_unit'
+#     )
+#     amount = serializers.IntegerField()
 
 #     class Meta:
 #         model = IngredientAmountInRecipe
-#         fields = ['id', 'ingredient', 'amount']
+#         fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
+class AddIngredientToRecipeSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+
+    class Meta:
+        # но осталось непонятно почему я здесь эту модель указываю? amount это поле этой модели. 
+        # Но ведь этот сериализатор не знает что за ID мы даем ему. Для него это просто число. Или нет?
+        model = IngredientAmountInRecipe
+        # эти поля указываем потому что они будут переданы через API.
+        # Далее перед сохранением поля будут обработаны методом create Рецепта
+        # и там записаны напрямую в модель IngredientAmountInRecipe
+        fields = ['id', 'amount'] 
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -57,36 +53,44 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         many=True,
         queryset=Tag.objects.all()
     )
-    ingredients = IngredientsEditSerializer(many=True)
+    ingredients = AddIngredientToRecipeSerializer(many=True)
 
     class Meta:
         model = Recipe
-        fields = '__all__'
+        fields = ['author', 'tags', 'ingredients', 'name',
+                  'image', 'text', 'cooking_time']
         read_only_fields = ('author',)
-    
-    def create_ingredients(self, ingredients, recipe):
-        for ingredient in ingredients:
-            IngredientAmountInRecipe.objects.create(
-                recipe=recipe,
-                ingredient_id=ingredient.get('id'),
-                amount=ingredient.get('amount'),
-            )
+
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
+        recipe = Recipe.objects.create(
+            **validated_data,
+            author=self.context.get('request').user
+        )
         recipe.tags.set(tags)
-        self.create_ingredients(ingredients, recipe)
+        for ingredient in ingredients:
+            IngredientAmountInRecipe.objects.create(
+                recipe=recipe,
+                ingredients_id=ingredient.get('id'),
+                amount=ingredient.get('amount'))
         return recipe
 
+
     def update(self, instance, validated_data):
-        if 'ingredients' in validated_data:
-            ingredients = validated_data.pop('ingredients')
-            instance.ingredients.clear()
-            self.create_ingredients(ingredients, instance)
-        if 'tags' in validated_data:
-            instance.tags.set(validated_data.pop('tags'))
+        instance.ingredients.clear()
+        instance.tags.clear()
+        ingredients = validated_data.pop('ingredients')
+        # если не проделывать это действие то теги и так нормально пересохранятся из validated_data.
+        # Стоит ли принудительно это проделывать для явности?
+        instance.tags.set(validated_data.pop('tags'))
+        for ingredient in ingredients:
+            IngredientAmountInRecipe.objects.create(
+                recipe=instance,
+                ingredients_id=ingredient.get('id'),
+                amount=ingredient.get('amount'))
+        
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -186,3 +190,11 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         #     return True
         # return False
 
+
+class ShortRecipeReadSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
