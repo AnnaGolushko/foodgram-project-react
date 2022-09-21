@@ -1,4 +1,7 @@
 from django.db import models
+from users.models import CustomUser
+from django.core import validators
+
 
 class Ingredient(models.Model):
     name = models.CharField(
@@ -11,7 +14,7 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        # ordering = ['name']
+        ordering = ['name']
         constraints = [
             models.UniqueConstraint(
                 fields=['name', 'measurement_unit'],
@@ -39,6 +42,7 @@ class Tag(models.Model):
     )
 
     class Meta:
+        # ordering = ['name']
         constraints = [
             models.UniqueConstraint(
                 fields=['name', 'color', 'slug'],
@@ -48,3 +52,80 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Recipe(models.Model):
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Название рецепта',
+    )
+    text = models.TextField(verbose_name='Описание рецепта')
+    image = models.ImageField(
+        upload_to='recipes/',
+        verbose_name='Изображение рецепта'
+    )
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='recipes',
+        verbose_name='Автор рецепта'
+    )
+    cooking_time = models.IntegerField(
+        verbose_name='Время приготовления блюда по рецепту (мин.)',
+        validators=[validators.MinValueValidator(
+            1, message='Минимальное время приготовления 1 минута'),
+        ]
+    )
+    ingredients = models.ManyToManyField(
+        Ingredient, 
+        through='IngredientAmountInRecipe',
+        related_name='recipes',
+        verbose_name='Ингредиенты'
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        related_name='recipes',
+        verbose_name='Тег рецепта'
+        )
+
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        ordering = ('-pub_date',)
+
+    def __str__(self):
+        return self.name
+
+
+class IngredientAmountInRecipe(models.Model):
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='ingredient',
+        verbose_name='Рецепт для указания ингредиентов',
+    )
+    ingredients = models.ForeignKey(
+        Ingredient,
+        on_delete=models.PROTECT,
+        related_name='recipe',
+        verbose_name='Связанные ингредиенты'
+    )
+    amount = models.PositiveIntegerField(
+        validators=[validators.MinValueValidator(
+            1, message='Количество ингредиента в рецепте необходимо не менее 1 (г., мл., щепоток и т.д.')]
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredients'],
+                name='unique_ingredient_in_recipe'
+            )
+        ]
+    
+    def __str__(self):
+        return f'{self.ingredients.name} в рецепте {self.recipe.name}'

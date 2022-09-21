@@ -17,9 +17,9 @@ from djoser.views import UserViewSet
 from djoser.conf import settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Ingredient, Tag
+from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe
 from users.models import CustomUser
-from .serializers import IngredientSerializer, TagSerializer
+from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer # , RecipeWriteSerializer
 
 User = CustomUser
 
@@ -36,3 +36,18 @@ class TagsViewSet(ReadOnlyModelViewSet):
     # permission_classes = (IsAdminOrReadOnly,)
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    # pagination_class = LimitPageNumberPagination
+    # filter_class = RecipeFilter
+    # permission_classes = (AdminUserOrReadOnly,)
+
+    def get_serializer_class(self):
+        if self.request.method in SAFE_METHODS:
+            return RecipeReadSerializer
+        # return RecipeWriteSerializer
+
+    # def perform_create(self, serializer):
+    #     serializer.save(author=self.request.user)

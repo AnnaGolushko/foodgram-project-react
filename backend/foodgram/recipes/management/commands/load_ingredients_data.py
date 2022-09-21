@@ -7,24 +7,30 @@ from django.db.utils import IntegrityError
 
 from recipes.models import Ingredient
 
+DATA_ROOT = os.path.join(settings.BASE_DIR, 'data')
+
 
 class Command(BaseCommand):
-    """Управляющая команда для загрузки Ингрединетов из файла json."""
+    help = 'loading ingredients from data in json'
+
+    def add_arguments(self, parser):
+        parser.add_argument('filename', default='ingredients.json', nargs='?',
+                            type=str)
 
     def handle(self, *args, **options):
         try:
-            with open('/data/ingredients.json', 'r', encoding='utf-8') as f:
+            with open(os.path.join(DATA_ROOT, options['filename']), 'r',
+                      encoding='utf-8') as f:
                 data = json.load(f)
                 for ingredient in data:
                     try:
-                        Ingredient.objects.create(
-                            name=ingredient["name"],
-                            measurement_unit=ingredient["measurement_unit"]
-                        )
+                        Ingredient.objects.create(name=ingredient["name"],
+                                                  measurement_unit=ingredient[
+                                                      "measurement_unit"])
                     except IntegrityError:
                         print(f'Ингридиет {ingredient["name"]} '
-                              f'уже есть в базе'
-                        )
+                              f'{ingredient["measurement_unit"]} '
+                              f'уже есть в базе')
 
         except FileNotFoundError:
             raise CommandError('Файл отсутствует в директории data')
