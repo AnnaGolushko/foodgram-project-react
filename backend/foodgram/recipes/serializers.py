@@ -137,8 +137,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     #             )
     #     return ingredients
 
-    
-
 
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
@@ -189,12 +187,3 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         # elif ShoppingRecipe.objects.filter(user=user, recipe=obj).exists():
         #     return True
         # return False
-
-
-class ShortRecipeReadSerializer(serializers.ModelSerializer):
-    image = Base64ImageField()
-
-    class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')

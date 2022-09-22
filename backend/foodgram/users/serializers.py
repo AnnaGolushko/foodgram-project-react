@@ -4,7 +4,6 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 
 from users.models import CustomUser, Subscribe
 from recipes.models import Recipe
-from recipes.serializers import ShortRecipeReadSerializer
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -33,6 +32,15 @@ class CustomUserListSerializer(UserSerializer):
         return Subscribe.objects.filter(user=user, author=obj.id).exists()
         # return user.follower.filter(author=obj.id).exists() - альтернатива через related_name
 
+
+class ShortRecipesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+
 class SubscribeSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='author.id')
     email = serializers.ReadOnlyField(source='author.email')
@@ -40,7 +48,9 @@ class SubscribeSerializer(serializers.ModelSerializer):
     first_name = serializers.ReadOnlyField(source='author.first_name')
     last_name = serializers.ReadOnlyField(source='author.last_name')
     is_subscribed = serializers.SerializerMethodField()
-    recipes = serializers.SerializerMethodField()
+    recipes = ShortRecipesSerializer(source='author.recipes',
+                                    read_only=True,
+                                    many=True)
     recipes_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -56,22 +66,18 @@ class SubscribeSerializer(serializers.ModelSerializer):
             return False
         return Subscribe.objects.filter(user=user, author=obj.author.id).exists()
 
-    def get_recipes(self, data):
-        return 1
-        
-        # serializer = serializers.ListSerializer(child=ShortRecipeReadSerializer())
-        # return serializer.to_representation(data.recipes.all())
-
     def get_recipes_count(self, obj):
         # в obj получаем объект модели Subscribe, поскольку во ViewSet сохраняем Subscibe-подписки через этот сериализатор
         person = obj.author.id
         return Recipe.objects.filter(author=person).count()
 
-    # def get_recipes(self, data):
-    #     recipes_limit = self.context.get('request').GET.get('recipes_limit')
-    #     recipes = (
-    #         data.recipes.all()[:int(recipes_limit)]
-    #         if recipes_limit else data.recipes
-    #     )
-    #     serializer = serializers.ListSerializer(child=ShortRecipeReadSerializer())
-    #     return serializer.to_representation(recipes)
+    # def to_representation(self, instance):
+    #     rep = super().to_representation(instance)
+    #     request = self.root.context.get('request')
+    #     if request is not None:
+    #         count = request.query_params.get('recipes_limit')
+    #     else:
+    #         count = self.root.context.get('recipes_limit')
+    #     if count is not None:
+    #         rep['recipes'] = rep['recipes'][:int(count)]
+    #     return rep
