@@ -17,10 +17,10 @@ from djoser.views import UserViewSet
 from djoser.conf import settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe, Favorite
+from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe, Favorite, ShoppingCart
 from users.models import CustomUser
 from users.serializers import ShortRecipesSerializer
-from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer, FavoriteSerializer
+from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer
 
 User = CustomUser
 
@@ -56,7 +56,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['POST', 'DELETE'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        user = request.user
         if request.method == 'POST':
             if Favorite.objects.filter(user=request.user, recipe=pk).exists():
                 return Response({
@@ -78,4 +77,30 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             favorite.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=True, methods=['POST', 'DELETE'],
+            permission_classes=[IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        if request.method == 'POST':
+            if ShoppingCart.objects.filter(user=request.user, recipe=pk).exists():
+                return Response({
+                    'errors': 'Ошибка - рецепт уже добавлен в список покупок'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            recipe = get_object_or_404(Recipe, id=pk)
+            ShoppingCart.objects.create(user=request.user, recipe=recipe)
+            serializer = ShortRecipesSerializer(
+                recipe, context={'request': request}
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif request.method == 'DELETE':
+            shopping_cart = ShoppingCart.objects.filter(user=request.user, recipe=pk)
+            if not shopping_cart.exists():
+                return Response({
+                    'errors': 'Ошибка - рецепт не был ранее добавлен в список покупок'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
