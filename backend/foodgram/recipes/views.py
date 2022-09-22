@@ -17,9 +17,10 @@ from djoser.views import UserViewSet
 from djoser.conf import settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe
+from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe, Favorite
 from users.models import CustomUser
-from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer
+from users.serializers import ShortRecipesSerializer
+from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer, FavoriteSerializer
 
 User = CustomUser
 
@@ -51,3 +52,30 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     # def perform_create(self, serializer):
     #     serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['POST', 'DELETE'],
+            permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk=None):
+        user = request.user
+        if request.method == 'POST':
+            if Favorite.objects.filter(user=request.user, recipe=pk).exists():
+                return Response({
+                    'errors': 'Ошибка - рецепт уже добавлен в избранное'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            recipe = get_object_or_404(Recipe, id=pk)
+            Favorite.objects.create(user=request.user, recipe=recipe)
+            serializer = ShortRecipesSerializer(
+                recipe, context={'request': request}
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif request.method == 'DELETE':
+            favorite = Favorite.objects.filter(user=request.user, recipe=pk)
+            if not favorite.exists():
+                return Response({
+                    'errors': 'Ошибка - рецепт не был ранее добавлен в избранное'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            favorite.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)

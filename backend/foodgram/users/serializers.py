@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from drf_base64.fields import Base64ImageField
 from djoser.serializers import UserCreateSerializer, UserSerializer
 
 from users.models import CustomUser, Subscribe
@@ -34,11 +35,12 @@ class CustomUserListSerializer(UserSerializer):
 
 
 class ShortRecipesSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(max_length=None, use_url=True)
 
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+        # read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class SubscribeSerializer(serializers.ModelSerializer):

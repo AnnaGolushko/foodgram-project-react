@@ -6,7 +6,7 @@ from django.db.models import F
 from users.serializers import CustomUserListSerializer
 from users.models import CustomUser, Subscribe
 
-from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe
+from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe, Favorite
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -20,6 +20,11 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'color', 'slug']
 
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ['user', 'recipe']
 
 # class RecipeIngredientsReadSerializer(serializers.ModelSerializer):
 #     id = serializers.IntegerField(source='ingredient.id')
@@ -163,17 +168,9 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
 
     def get_is_favorited(self, obj):
-        return False
-        # request = self.context.get('request')
-        # try:
-        #     user = request.user
-        # except AttributeError:
-        #     return False
-        # if isinstance(user, AnonymousUser):
-        #     return False
-        # elif FavoritedRecipe.objects.filter(user=user, recipe=obj).exists():
-        #     return True
-        # return False
+        user_id = self.context.get('request').user.id
+        return Favorite.objects.filter(
+            user=user_id, recipe=obj.id).exists()
 
     def get_is_in_shopping_cart(self, obj):
         return False

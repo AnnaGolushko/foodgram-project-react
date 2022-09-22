@@ -98,7 +98,7 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.name
+        return f'{self.id} - {self.name}'
 
 
 class IngredientAmountInRecipe(models.Model):
@@ -130,3 +130,29 @@ class IngredientAmountInRecipe(models.Model):
     def __str__(self):
         return f'ID {self.id} - Рецепт <{self.recipe.name}> - Ингредиент <{self.ingredients.name}> - Кол-во <{self.amount}> '
 
+
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Пользователь',
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Рецепт в списке избранного',
+    )
+
+    class Meta:
+        ordering = ['-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_recipe_in_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user}'
