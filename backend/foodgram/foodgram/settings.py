@@ -127,6 +127,11 @@ DJOSER = {
     # "USER_ID_FIELD": "username",
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': False,
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.AllowAny'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+        'user_delete': ['rest_framework.permissions.IsAdminUser'],
+    },
 }
 
 # DJOSER = {

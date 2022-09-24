@@ -73,13 +73,13 @@ class SubscribeSerializer(serializers.ModelSerializer):
         person = obj.author.id
         return Recipe.objects.filter(author=person).count()
 
-    # def to_representation(self, instance):
-    #     rep = super().to_representation(instance)
-    #     request = self.root.context.get('request')
-    #     if request is not None:
-    #         count = request.query_params.get('recipes_limit')
-    #     else:
-    #         count = self.root.context.get('recipes_limit')
-    #     if count is not None:
-    #         rep['recipes'] = rep['recipes'][:int(count)]
-    #     return rep
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        request = self.root.context.get('request')
+        if request is not None:
+            count = request.query_params.get('recipes_limit')
+        else:
+            count = self.root.context.get('recipes_limit')
+        if count is not None:
+            rep['recipes'] = rep['recipes'][:int(count)]
+        return rep
