@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.http import Http404
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, filters
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import (SAFE_METHODS, AllowAny,
                                         IsAuthenticated,
@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from djoser.views import UserViewSet
 from djoser.conf import settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
 
 from recipes.pagination import CustomPageNumberPagination
 from .filters import IngredientSearchFilter, RecipeFilter
@@ -37,10 +38,12 @@ class TagsViewSet(ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny,)
     queryset = Recipe.objects.all()
     pagination_class = CustomPageNumberPagination
-    filter_class = RecipeFilter
-    permission_classes = (AllowAny,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend,)
+    filterset_class = RecipeFilter
+   
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
