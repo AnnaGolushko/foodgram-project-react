@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from drf_base64.fields import Base64ImageField
 from djoser.serializers import UserCreateSerializer, UserSerializer
 
@@ -40,7 +39,6 @@ class ShortRecipesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
-        # read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
@@ -73,13 +71,10 @@ class SubscribeSerializer(serializers.ModelSerializer):
         person = obj.author.id
         return Recipe.objects.filter(author=person).count()
 
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        request = self.root.context.get('request')
-        if request is not None:
-            count = request.query_params.get('recipes_limit')
-        else:
-            count = self.root.context.get('recipes_limit')
-        if count is not None:
-            rep['recipes'] = rep['recipes'][:int(count)]
-        return rep
+    def to_representation(self, obj):
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get('recipes_limit')
+
+        response = super().to_representation(obj)
+        response['recipes'] = response['recipes'][:int(recipes_limit)]
+        return response

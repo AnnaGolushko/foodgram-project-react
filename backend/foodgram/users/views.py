@@ -1,15 +1,10 @@
 from django.shortcuts import get_object_or_404
-from django.http import Http404
 
-from rest_framework import generics, status, viewsets
-from rest_framework.authtoken.models import Token
-from rest_framework.permissions import (SAFE_METHODS, AllowAny,
-                                        IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework import status
+
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from djoser.views import UserViewSet
-from djoser.conf import settings
 
 from recipes.pagination import CustomPageNumberPagination
 from users.models import CustomUser, Subscribe
@@ -25,8 +20,6 @@ class CustomUserViewSet(UserViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return CustomUserCreateSerializer
-        # elif self.action == "set_password":
-        #     return settings.SERIALIZERS.set_password
         elif self.request.method == 'GET':
             return CustomUserListSerializer
         

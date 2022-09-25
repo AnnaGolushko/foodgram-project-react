@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.db.models.aggregates import Sum
 from rest_framework import status, viewsets, filters
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
@@ -78,3 +80,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+    @action(detail=False, methods=['GET'])
+    def download_shopping_cart(self, request):
+        shopping_list = IngredientAmountInRecipe.objects.filter(
+            recipe__shopping_cart__user=request.user).values(
+            'ingredients__name',
+            'ingredients__measurement_unit').annotate(amount=Sum('amount')).order_by()
+        
+        content = (
+            [f'{item["ingredients__name"]} ({item["ingredients__measurement_unit"]}) '
+            f'- {item["amount"]}\n'
+            for item in shopping_list]
+        )
+        filename = 'shopping_list.txt'
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(filename)
+        )
+        return response
