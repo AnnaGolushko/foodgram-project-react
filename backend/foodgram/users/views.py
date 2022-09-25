@@ -19,21 +19,20 @@ User = CustomUser
 
 
 class CustomUserViewSet(UserViewSet):
-    permission_classes = (IsAuthenticated,)
     queryset = User.objects.all()
     pagination_class = CustomPageNumberPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
             return CustomUserCreateSerializer
-        elif self.action == "set_password":
-            return settings.SERIALIZERS.set_password
+        # elif self.action == "set_password":
+        #     return settings.SERIALIZERS.set_password
         elif self.request.method == 'GET':
             return CustomUserListSerializer
         
         return UserViewSet.get_serializer_class(self)
 
-    @action(methods=['POST', 'DELETE'], detail=True, permission_classes=[IsAuthenticated])
+    @action(methods=['POST', 'DELETE'], detail=True)
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, id=id)
@@ -68,7 +67,7 @@ class CustomUserViewSet(UserViewSet):
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])
+    @action(methods=['GET'], detail=False)
     def subscriptions(self, request):
         user = request.user
         subscriptions = Subscribe.objects.filter(user=user)

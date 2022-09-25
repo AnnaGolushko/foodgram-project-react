@@ -5,9 +5,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# SECURITY WARNING: keep the secret key used in production secret!
+
+# перед деплоем вынесу в переменную
 SECRET_KEY = 'qg6850*d49pxywtsx!q&(y47(4&%_$7^$yk$pidnuvx*7kw9ta'
 
+# перед деплоем отключу
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -114,7 +116,6 @@ STATIC_URL = '/static/'
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-        # 'rest_framework.permissions.AllowAny',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -128,30 +129,16 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'users.CustomUser'
 
 DJOSER = {
-    # "USER_ID_FIELD": "username",
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': False,
+    # если по чеклисту смотреть, то эти разрешения не требуются. страница рецепта и всех рецептов и так будут работать
+    # но в документации API указано что доступ необходим всем пользователям. А для отдельного профиля пользователя еще вдобавок указан Token (противоречие)
+    # по итогу непонятно как должно быть. но считаю что эти права излишни. и их стоит удалить. сделала чтобы если надо то чтобы были.
     'PERMISSIONS': {
         'user': ['rest_framework.permissions.AllowAny'],
         'user_list': ['rest_framework.permissions.AllowAny'],
-        'user_delete': ['rest_framework.permissions.IsAdminUser'],
     },
 }
-
-# DJOSER = {
-#     'LOGIN_FIELD': 'email',
-#     # 'SERIALIZERS': {
-#     #     'user': 'users.serializers.CustomUserSerializer',
-#     #     'current_user': 'users.serializers.CustomUserSerializer',
-#     #     'user_create': 'users.serializers.CustomUserSerializer',
-#     # },
-#     'HIDE_USERS': False,
-#     # 'PERMISSIONS': {
-#     #     'user': ['users.permissions.AdminOrReadOnly'],
-#     #     'user_list': ['rest_framework.permissions.AllowAny'],
-#     #     'user_delete': ['rest_framework.permissions.IsAdminUser'],
-#     # },
-# }
 
 
 # CORS_URLS_REGEX = r'^/api/.*$' 
