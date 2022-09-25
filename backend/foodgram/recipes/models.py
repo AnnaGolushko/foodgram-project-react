@@ -42,7 +42,7 @@ class Tag(models.Model):
     )
 
     class Meta:
-        # ordering = ['name']
+        ordering = ['name']
         constraints = [
             models.UniqueConstraint(
                 fields=['name', 'color', 'slug'],
@@ -98,7 +98,7 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return f'{self.id} - {self.name}'
+        return self.name
 
 
 class IngredientAmountInRecipe(models.Model):
@@ -115,18 +115,20 @@ class IngredientAmountInRecipe(models.Model):
         verbose_name='Связанные ингредиенты'
     )
     amount = models.PositiveIntegerField(
+        verbose_name='Количество',
         validators=[validators.MinValueValidator(
             1, message='Количество ингредиента в рецепте необходимо не менее 1 (г., мл., щепоток и т.д.')]
     )
 
     class Meta:
+        ordering = ['-id']
         constraints = [
             models.UniqueConstraint(
                 fields=['recipe', 'ingredients'],
                 name='unique_ingredient_in_recipe'
             )
         ]
-    
+
     def __str__(self):
         return f'ID {self.id} - Рецепт <{self.recipe.name}> - Ингредиент <{self.ingredients.name}> - Кол-во <{self.amount}> '
 
