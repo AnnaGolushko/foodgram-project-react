@@ -1,9 +1,12 @@
+from django.core import validators
 from django.db import models
 from users.models import CustomUser
-from django.core import validators
 
 
 class Ingredient(models.Model):
+    """Модель Ingredient хранит сведения о всех
+    доступных ингредиентах для рецептов."""
+
     name = models.CharField(
         verbose_name='Название ингредиента',
         max_length=150,
@@ -27,8 +30,11 @@ class Ingredient(models.Model):
 
 
 class Tag(models.Model):
+    """Модель Tag хранит теги (категории) для рецептов."""
+
     name = models.CharField(
         max_length=30,
+        verbose_name='Наименование',
         unique=True
     )
     color = models.CharField(
@@ -38,6 +44,7 @@ class Tag(models.Model):
     )
     slug = models.SlugField(
         max_length=30,
+        verbose_name='Slug поле',
         unique=True
     )
 
@@ -55,6 +62,8 @@ class Tag(models.Model):
 
 
 class Recipe(models.Model):
+    """Модель Recipe хранит сведения о всех рецептах пользователей."""
+
     name = models.CharField(
         max_length=200,
         verbose_name='Название рецепта',
@@ -77,7 +86,7 @@ class Recipe(models.Model):
         ]
     )
     ingredients = models.ManyToManyField(
-        Ingredient, 
+        Ingredient,
         through='IngredientAmountInRecipe',
         related_name='recipes',
         verbose_name='Ингредиенты'
@@ -102,6 +111,10 @@ class Recipe(models.Model):
 
 
 class IngredientAmountInRecipe(models.Model):
+    """Модель IngredientAmountInRecipe является дополнительной
+    таблицей-посредником связи Many-To-Many между Recipe и Ingredient.
+    Необходима для хранения поля amount (количества) ингредиентов."""
+
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
@@ -117,7 +130,9 @@ class IngredientAmountInRecipe(models.Model):
     amount = models.PositiveIntegerField(
         verbose_name='Количество',
         validators=[validators.MinValueValidator(
-            1, message='Количество ингредиента в рецепте необходимо не менее 1 (г., мл., щепоток и т.д.')]
+            1, message=('Количество ингредиента в рецепте необходимо '
+                        'не менее 1 (г., мл., шт. и т.д.'))
+                    ]
     )
 
     class Meta:
@@ -130,10 +145,17 @@ class IngredientAmountInRecipe(models.Model):
         ]
 
     def __str__(self):
-        return f'ID {self.id} - Рецепт <{self.recipe.name}> - Ингредиент <{self.ingredients.name}> - Кол-во <{self.amount}> '
+        return (f'ID {self.id} '
+                '- Рецепт <{self.recipe.name}> '
+                '- Ингредиент <{self.ingredients.name}> '
+                '- Кол-во <{self.amount}> '
+                )
 
 
 class Favorite(models.Model):
+    """Модель Favorite хранит данные о добавлении
+    пользователем какого-либо рецепта в избранное."""
+
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -161,6 +183,9 @@ class Favorite(models.Model):
 
 
 class ShoppingCart(models.Model):
+    """Модель ShoppingCart хранит данные о добавлении
+    пользователем какого-либо рецепта в список покупок."""
+
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,

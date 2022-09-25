@@ -1,33 +1,41 @@
-from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from drf_base64.fields import Base64ImageField
-
+from rest_framework import serializers
 from users.serializers import CustomUserListSerializer
 
-from .models import Ingredient, Tag, Recipe, IngredientAmountInRecipe, Favorite, ShoppingCart
+from .models import (Favorite, Ingredient, IngredientAmountInRecipe,
+                     Recipe, ShoppingCart, Tag)
 
 
 class IngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Ingredient. Используются все поля модели."""
+
     class Meta:
         model = Ingredient
-        fields = ['id', 'name', 'measurement_unit'] 
+        fields = ['id', 'name', 'measurement_unit']
 
 
 class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Tag. Используются все поля модели."""
+
     class Meta:
         model = Tag
         fields = ['id', 'name', 'color', 'slug']
 
 
 class AddIngredientToRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для записи в модель IngredientAmountInRecipe."""
+
     id = serializers.IntegerField()
 
     class Meta:
         model = IngredientAmountInRecipe
-        fields = ['id', 'amount'] 
+        fields = ['id', 'amount']
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания рецептов (модель Recipe)."""
+
     image = Base64ImageField(max_length=None, use_url=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -57,9 +65,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                     'Ингредиент должен быть уникальным!'
                 )
             ingredient_list.append(ingredient)
-        
-        return data
 
+        return data
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
@@ -80,7 +87,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         instance.ingredients.clear()
         instance.tags.clear()
         ingredients = validated_data.pop('ingredients')
-        # если не проделывать это действие то теги и так нормально пересохранятся из validated_data.
+        # если не проделывать это действие то теги и так
+        # нормально пересохранятся из validated_data.
         # Стоит ли принудительно это проделывать для явности?
         instance.tags.set(validated_data.pop('tags'))
         for ingredient in ingredients:
@@ -88,7 +96,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 recipe=instance,
                 ingredients_id=ingredient.get('id'),
                 amount=ingredient.get('amount'))
-        
+
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -99,6 +107,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientsReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения из модели IngredientAmountInRecipe
+    с выдачей значений полей из связанной модели Ingredient."""
+
     id = serializers.ReadOnlyField(source='ingredients.id')
     name = serializers.ReadOnlyField(source='ingredients.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -111,12 +122,15 @@ class RecipeIngredientsReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для выдачи в response рецептов (модель Recipe).
+    Реализованы вычисляемые поля is_favorited и is_in_shopping_cart."""
+
     tags = TagSerializer(many=True, read_only=True)
     author = CustomUserListSerializer(
         read_only=True, default=serializers.CurrentUserDefault()
     )
     ingredients = RecipeIngredientsReadSerializer(
-        source='ingredient', many=True, required=True, 
+        source='ingredient', many=True, required=True,
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()

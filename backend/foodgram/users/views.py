@@ -1,19 +1,21 @@
 from django.shortcuts import get_object_or_404
-
-from rest_framework import status
-
-from rest_framework.response import Response
-from rest_framework.decorators import action
 from djoser.views import UserViewSet
-
 from recipes.pagination import CustomPageNumberPagination
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from users.models import CustomUser, Subscribe
-from users.serializers import CustomUserCreateSerializer, CustomUserListSerializer, SubscribeSerializer
+from users.serializers import (CustomUserCreateSerializer,
+                               CustomUserListSerializer, SubscribeSerializer)
 
 User = CustomUser
 
 
 class CustomUserViewSet(UserViewSet):
+    """Переопределение встроенного представления пользователя.
+    Добавлены эндпоинты для функции подписки пользователей друг на друга."""
+
     queryset = User.objects.all()
     pagination_class = CustomPageNumberPagination
 
@@ -22,7 +24,7 @@ class CustomUserViewSet(UserViewSet):
             return CustomUserCreateSerializer
         elif self.request.method == 'GET':
             return CustomUserListSerializer
-        
+
         return UserViewSet.get_serializer_class(self)
 
     @action(methods=['POST', 'DELETE'], detail=True)
@@ -37,10 +39,12 @@ class CustomUserViewSet(UserViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             if Subscribe.objects.filter(user=user, author=author).exists():
                 return Response({
-                    'errors': 'Ошибка - подписка на этого автора уже существует'
+                    'errors': 'Ошибка - подписка на этого автора уже есть'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            new_subscription = Subscribe.objects.create(user=user, author=author)
+            new_subscription = Subscribe.objects.create(
+                user=user, author=author
+            )
             serializer = SubscribeSerializer(
                 new_subscription, context={'request': request}
             )
@@ -56,7 +60,7 @@ class CustomUserViewSet(UserViewSet):
                 return Response({
                     'errors': 'Ошибка - подписка на этого автора отсутствует'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 

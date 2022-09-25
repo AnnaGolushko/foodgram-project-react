@@ -1,20 +1,25 @@
-from rest_framework import serializers
-from drf_base64.fields import Base64ImageField
 from djoser.serializers import UserCreateSerializer, UserSerializer
+from drf_base64.fields import Base64ImageField
+from recipes.models import Recipe
+from rest_framework import serializers
 
 from users.models import CustomUser, Subscribe
-from recipes.models import Recipe
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
+    """Переопределение встроенного сериализатора создания пользователя.
+    Необходим для обработки всех обязательных для ввода полей."""
 
     class Meta:
         model = CustomUser
         fields = (
             'email', 'id', 'password', 'username', 'first_name', 'last_name')
 
- 
+
 class CustomUserListSerializer(UserSerializer):
+    """Переопределение встроенного сериализатора чтения информации о пользователях.
+    В response добавляется дополнительное вычисляемое поле 'is_subscribed'."""
+
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
@@ -23,17 +28,24 @@ class CustomUserListSerializer(UserSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed')
 
-    # метод получения поля is_subscribed в этой ситуации отличается от SubscribeSerializer,
-    # потому что здесь obj - CustomUser, а там obj - Subscribe (судя по ошибкам которые получала)
-    def get_is_subscribed(self, obj): # эту часть кода необходимо будет вынести в отдельный класс, но как?
+    # метод получения поля is_subscribed в этой ситуации
+    # отличается от SubscribeSerializer,
+    # потому что здесь obj - CustomUser, а там obj - Subscribe
+    # (судя по ошибкам которые получала)
+    # эту часть кода необходимо будет вынести в отдельный класс, но как?
+    def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
         return Subscribe.objects.filter(user=user, author=obj.id).exists()
-        # return user.follower.filter(author=obj.id).exists() - альтернатива через related_name
+        # альтернатива через related_name
+        # return user.follower.filter(author=obj.id).exists()
 
 
 class ShortRecipesSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Recipe с краткой информацией о рецептах.
+    Применяется для сериализатора подписок пользователей."""
+
     image = Base64ImageField(max_length=None, use_url=True)
 
     class Meta:
@@ -42,6 +54,11 @@ class ShortRecipesSerializer(serializers.ModelSerializer):
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписки пользователей друг на друга.
+    Записи создаются в модели Subscribe.
+    В response добавляются вычисляемые поля is_subscribed и recipes_count.
+    В response также добавляются recipes из модели Recipe."""
+
     id = serializers.ReadOnlyField(source='author.id')
     email = serializers.ReadOnlyField(source='author.email')
     username = serializers.ReadOnlyField(source='author.username')
@@ -49,8 +66,8 @@ class SubscribeSerializer(serializers.ModelSerializer):
     last_name = serializers.ReadOnlyField(source='author.last_name')
     is_subscribed = serializers.SerializerMethodField()
     recipes = ShortRecipesSerializer(source='author.recipes',
-                                    read_only=True,
-                                    many=True)
+                                     read_only=True,
+                                     many=True)
     recipes_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -59,15 +76,18 @@ class SubscribeSerializer(serializers.ModelSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed', 'recipes', 'recipes_count'
         ]
-    
+
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return Subscribe.objects.filter(user=user, author=obj.author.id).exists()
+        return Subscribe.objects.filter(
+            user=user, author=obj.author.id
+        ).exists()
 
     def get_recipes_count(self, obj):
-        # в obj получаем объект модели Subscribe, поскольку во ViewSet сохраняем Subscibe-подписки через этот сериализатор
+        # в obj получаем объект модели Subscribe, поскольку
+        # во ViewSet сохраняем Subscibe-подписки через этот сериализатор
         person = obj.author.id
         return Recipe.objects.filter(author=person).count()
 

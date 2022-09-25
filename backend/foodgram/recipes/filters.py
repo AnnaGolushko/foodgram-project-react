@@ -1,8 +1,7 @@
-import django_filters as filters
 from django_filters import AllValuesMultipleFilter, rest_framework
-from django_filters.widgets import BooleanWidget
-from recipes.models import Recipe
 from rest_framework.filters import SearchFilter
+
+from recipes.models import Recipe
 
 
 class IngredientSearchFilter(SearchFilter):
@@ -18,17 +17,20 @@ class RecipeFilter(rest_framework.FilterSet):
     class Meta:
         model = Recipe
         fields = ('author', 'tags',)
-    
+
     def favorite(self, queryset, name, value):
-        # если в запросе передано ?is_favorited=1, то выбираем записи из таблицы Favorite по related_name usera
+        # если в запросе передано ?is_favorited=1, то выбираем
+        # записи из таблицы Favorite по related_name usera
         # т.е. ищем записи где текущий пользователь добавил в избранное рецепты
-        if value == 1:
+        if value is True:
             queryset = queryset.filter(
                 favorites__user__username=self.request.user
             )
             return queryset
-        # # если в запросе передано ?is_favorited=0, то наоборот, но не понятно а зачем этот случай. 
-        # сделала, потому что в документации к API это требуется. но для интерфейса не понимаю зачем оно...
+        # # если в запросе передано ?is_favorited=0, то наоборот,
+        # но не понятно а зачем этот случай.
+        # сделала, потому что в документации к API это требуется.
+        # но для интерфейса не понимаю зачем оно...
         elif value is False:
             queryset = queryset.exclude(
                 favorites__user__username=self.request.user
