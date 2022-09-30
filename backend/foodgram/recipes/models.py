@@ -1,3 +1,6 @@
+from django.db.models.aggregates import Sum
+from django.http import HttpResponse
+
 from django.core import validators
 from django.db import models
 from users.models import CustomUser
@@ -150,6 +153,27 @@ class IngredientAmountInRecipe(models.Model):
                 '- Ингредиент <{self.ingredients.name}> '
                 '- Кол-во <{self.amount}> '
                 )
+
+    @staticmethod
+    def download_shopping_cart(user):
+        shopping_list = IngredientAmountInRecipe.objects.filter(
+            recipe__shopping_cart__user=user).values(
+                'ingredients__name',
+                'ingredients__measurement_unit'
+            ).annotate(amount=Sum('amount')).order_by()
+
+        content = (
+            [f'{item["ingredients__name"]} '
+             f'({item["ingredients__measurement_unit"]}) '
+             f'- {item["amount"]}\n'
+             for item in shopping_list]
+        )
+        filename = 'shopping_list.txt'
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(filename)
+        )
+        return response
 
 
 class Favorite(models.Model):

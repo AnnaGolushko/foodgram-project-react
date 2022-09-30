@@ -7,7 +7,8 @@ from rest_framework.response import Response
 
 from users.models import CustomUser, Subscribe
 from users.serializers import (CustomUserCreateSerializer,
-                               CustomUserListSerializer, SubscribeSerializer)
+                               CustomUserListSerializer, SubscribeSerializer,
+                               SubscribeWriteDeleteSerializer)
 
 User = CustomUser
 
@@ -31,38 +32,32 @@ class CustomUserViewSet(UserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = get_object_or_404(User, id=id)
+        serializer = SubscribeWriteDeleteSerializer(
+                data={'user': request.user, 'author': author},
+                context={'request': request}
+            )
 
         if self.request.method == 'POST':
-            if user == author:
-                return Response({
-                    'errors': 'Ошибка - нельзя подписаться на самого себя'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            if Subscribe.objects.filter(user=user, author=author).exists():
-                return Response({
-                    'errors': 'Ошибка - подписка на этого автора уже есть'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            new_subscription = Subscribe.objects.create(
-                user=user, author=author
-            )
-            serializer = SubscribeSerializer(
-                new_subscription, context={'request': request}
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            if serializer.is_valid(raise_exception=True):
+                new_subscription = Subscribe.objects.create(
+                    user=user, author=author
+                )
+                serializer = SubscribeSerializer(
+                    new_subscription, context={'request': request}
+                )
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
         if self.request.method == 'DELETE':
-            if user == author:
-                return Response({
-                    'errors': 'Ошибка - нельзя отписаться от самого себя'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            subscription = Subscribe.objects.filter(user=user, author=author)
-            if not subscription.exists():
-                return Response({
-                    'errors': 'Ошибка - подписка на этого автора отсутствует'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            subscription.delete()
+            if serializer.is_valid(raise_exception=True):
+                subscription = Subscribe.objects.filter(
+                    user=user, author=author
+                )
+                subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['GET'], detail=False)
     def subscriptions(self, request):

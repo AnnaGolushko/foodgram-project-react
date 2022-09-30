@@ -1,3 +1,5 @@
+# from django.shortcuts import get_object_or_404
+# from rest_framework.validators import UniqueTogetherValidator
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_base64.fields import Base64ImageField
 from recipes.models import Recipe
@@ -28,11 +30,6 @@ class CustomUserListSerializer(UserSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed')
 
-    # метод получения поля is_subscribed в этой ситуации
-    # отличается от SubscribeSerializer,
-    # потому что здесь obj - CustomUser, а там obj - Subscribe
-    # (судя по ошибкам которые получала)
-    # эту часть кода необходимо будет вынести в отдельный класс, но как?
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
@@ -94,7 +91,61 @@ class SubscribeSerializer(serializers.ModelSerializer):
     def to_representation(self, obj):
         request = self.context.get('request')
         recipes_limit = request.query_params.get('recipes_limit')
+        if not recipes_limit:
+            return super().to_representation(obj)
 
         response = super().to_representation(obj)
         response['recipes'] = response['recipes'][:int(recipes_limit)]
         return response
+
+
+class SubscribeWriteDeleteSerializer(serializers.ModelSerializer):
+    queryset = CustomUser.objects.all()
+    user = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
+    )
+    author = serializers.SlugRelatedField(
+        required=True,
+        slug_field='username',
+        queryset=CustomUser.objects.all()
+    )
+
+    class Meta:
+        model = Subscribe
+        fields = ('user', 'author')
+
+    def validate(self, data):
+        request = self.context.get('request')
+        author = data['author']
+
+        if request.method == 'POST':
+            if request.user == author:
+                raise serializers.ValidationError(
+                    'Нельзя подписаться на себя'
+                )
+            if Subscribe.objects.filter(
+                user=request.user, author=author
+            ).exists():
+                raise serializers.ValidationError(
+                    'Подписка на этого автора уже есть'
+                )
+        if request.method == 'DELETE':
+            if request.user == author:
+                raise serializers.ValidationError(
+                    'Нельзя отписаться от себя'
+                )
+            if not Subscribe.objects.filter(
+                user=request.user, author=author
+            ).exists():
+                raise serializers.ValidationError(
+                    'подписка на этого автора отсутствует'
+                )
+        return data
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        author = validated_data['author']
+        Subscribe.objects.get_or_create(user=user, author=author)
+        return validated_data

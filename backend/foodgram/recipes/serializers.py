@@ -33,6 +33,21 @@ class AddIngredientToRecipeSerializer(serializers.ModelSerializer):
         fields = ['id', 'amount']
 
 
+def ingredient_bulk_creation(recipe, ingredients):
+    """Функция создания объектов в базе IngredientAmountInRecipe
+    для сериализатора создания рецепта RecipeWriteSerializer."""
+
+    ingredients_for_creation = list()
+    for ingredient in ingredients:
+        ingredients_for_creation.append(
+            IngredientAmountInRecipe(
+                recipe=recipe,
+                ingredients_id=ingredient.get('id'),
+                amount=ingredient.get('amount'))
+            )
+    IngredientAmountInRecipe.objects.bulk_create(ingredients_for_creation)
+
+
 class RecipeWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для создания рецептов (модель Recipe)."""
 
@@ -76,27 +91,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             author=self.context.get('request').user
         )
         recipe.tags.set(tags)
-        for ingredient in ingredients:
-            IngredientAmountInRecipe.objects.create(
-                recipe=recipe,
-                ingredients_id=ingredient.get('id'),
-                amount=ingredient.get('amount'))
+        ingredient_bulk_creation(recipe, ingredients)
         return recipe
 
     def update(self, instance, validated_data):
         instance.ingredients.clear()
         instance.tags.clear()
         ingredients = validated_data.pop('ingredients')
-        # если не проделывать это действие то теги и так
-        # нормально пересохранятся из validated_data.
-        # Стоит ли принудительно это проделывать для явности?
         instance.tags.set(validated_data.pop('tags'))
-        for ingredient in ingredients:
-            IngredientAmountInRecipe.objects.create(
-                recipe=instance,
-                ingredients_id=ingredient.get('id'),
-                amount=ingredient.get('amount'))
-
+        ingredient_bulk_creation(instance, ingredients)
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -151,3 +154,69 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         user_id = self.context.get('request').user.id
         return ShoppingCart.objects.filter(
             user=user_id, recipe=obj.id).exists()
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    user = serializers.IntegerField(source='user.id')
+    recipe = serializers.IntegerField(source='recipe.id')
+
+    class Meta:
+        model = Favorite
+        fields = ('user', 'recipe',)
+
+    def validate(self, data):
+        request = self.context.get('request')
+        user = data['user']['id']
+        recipe = data['recipe']['id']
+        follow = Favorite.objects.filter(user__id=user, recipe__id=recipe)
+        if request.method == 'POST':
+            if follow.exists():
+                raise serializers.ValidationError(
+                    {'errors': 'Нельзя добавить повторно рецепт в избранное.'}
+                )
+        if request.method == 'DELETE':
+            if not follow.exists():
+                raise serializers.ValidationError(
+                    {'errors': 'Нельзя удалить повторно рецепт из избранного.'}
+                )
+        return data
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        recipe = validated_data['recipe']
+        Favorite.objects.get_or_create(user=user, recipe=recipe)
+        return validated_data
+
+
+class ShoppingSerializer(FavoriteSerializer):
+    user = serializers.IntegerField(source='user.id')
+    recipe = serializers.IntegerField(source='recipe.id')
+
+    class Meta:
+        model = ShoppingCart
+        fields = ('user', 'recipe',)
+
+    def validate(self, data):
+        request = self.context.get('request')
+        user = data['user']['id']
+        recipe = data['recipe']['id']
+        want_to_buy = ShoppingCart.objects.filter(
+            user__id=user, recipe__id=recipe
+        )
+        if request.method == 'POST':
+            if want_to_buy.exists():
+                raise serializers.ValidationError(
+                    {'errors': 'Нельзя добавить повторно рецепт в список.'}
+                )
+        if request.method == 'DELETE':
+            if not want_to_buy.exists():
+                raise serializers.ValidationError(
+                    {'errors': 'Нельзя удалить повторно рецепт из списка.'}
+                )
+        return data
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        recipe = validated_data['recipe']
+        ShoppingCart.objects.get_or_create(user=user, recipe=recipe)
+        return validated_data

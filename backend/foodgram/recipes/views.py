@@ -1,5 +1,3 @@
-from django.db.models.aggregates import Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
@@ -17,7 +15,8 @@ from .filters import IngredientSearchFilter, RecipeFilter
 from .models import (Favorite, Ingredient, IngredientAmountInRecipe, Recipe,
                      ShoppingCart, Tag)
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeWriteSerializer, TagSerializer)
+                          RecipeWriteSerializer, TagSerializer,
+                          FavoriteSerializer, ShoppingSerializer)
 
 User = CustomUser
 
@@ -59,68 +58,107 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-    @action(detail=True, methods=['POST', 'DELETE'])
-    def favorite(self, request, pk=None):
-        if request.method == 'POST':
-            return self.add_new_object(Favorite, request.user, pk)
-        elif request.method == 'DELETE':
-            return self.delete_existing_object(Favorite, request.user, pk)
-        return None
-
-    @action(detail=True, methods=['POST', 'DELETE'])
-    def shopping_cart(self, request, pk=None):
-        if request.method == 'POST':
-            return self.add_new_object(ShoppingCart, request.user, pk)
-        elif request.method == 'DELETE':
-            return self.delete_existing_object(ShoppingCart, request.user, pk)
-        return None
-
-    def add_new_object(self, model, user, pk):
-        """Метод для создания новой записи в модели.
-        Модель должна иметь поля user и recipe."""
-
-        if model.objects.filter(user=user, recipe=pk).exists():
-            return Response({
-                'errors': 'Ошибка - Рецепт уже добавлен в список'
-            }, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=True, methods=['POST', 'delete'])
+    def favorite(self, request, pk):
         recipe = get_object_or_404(Recipe, id=pk)
-        model.objects.create(user=user, recipe=recipe)
-        serializer = ShortRecipesSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = FavoriteSerializer(
+            data={'user': request.user.id, 'recipe': recipe.id},
+            context={'request': request}
+        )
+        if request.method == 'POST':
+            if serializer.is_valid(raise_exception=True):
+                serializer.save(recipe=recipe, user=request.user)
+                serializer = ShortRecipesSerializer(recipe)
+                return Response(
+                    serializer.data, status=status.HTTP_201_CREATED
+                )
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
-    def delete_existing_object(self, model, user, pk):
-        """Метод для удаления записи из модели.
-        Модель должна иметь поля user и recipe."""
+        if request.method == 'DELETE':
+            if serializer.is_valid(raise_exception=True):
+                favorite = get_object_or_404(
+                    Favorite, recipe=recipe, user=request.user
+                )
+                self.perform_destroy(favorite)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        obj = model.objects.filter(user=user, recipe=pk)
-        if not obj.exists():
-            return Response({
-                'errors': 'Ошибка - Рецепт уже удален'
-            }, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=True, methods=['POST', 'delete'])
+    def shopping_cart(self, request, pk):
+        recipe = get_object_or_404(Recipe, id=pk)
+        serializer = ShoppingSerializer(
+            data={'user': request.user.id, 'recipe': recipe.id},
+            context={'request': request}
+        )
+        if request.method == 'POST':
+            if serializer.is_valid(raise_exception=True):
+                serializer.save(recipe=recipe, user=request.user)
+                serializer = ShortRecipesSerializer(recipe)
+                return Response(
+                    serializer.data, status=status.HTTP_201_CREATED
+                )
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        obj.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'DELETE':
+            if serializer.is_valid(raise_exception=True):
+                favorite = get_object_or_404(
+                    ShoppingCart, recipe=recipe, user=request.user
+                )
+                self.perform_destroy(favorite)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['GET'])
     def download_shopping_cart(self, request):
         """Эндпоинт для скачивания списка ингрединетов
         для рецептов из списка покупок. Формат файла - .txt."""
 
-        shopping_list = IngredientAmountInRecipe.objects.filter(
-            recipe__shopping_cart__user=request.user).values(
-                'ingredients__name',
-                'ingredients__measurement_unit'
-            ).annotate(amount=Sum('amount')).order_by()
-
-        content = (
-            [f'{item["ingredients__name"]} '
-             f'({item["ingredients__measurement_unit"]}) '
-             f'- {item["amount"]}\n'
-             for item in shopping_list]
-        )
-        filename = 'shopping_list.txt'
-        response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = (
-            'attachment; filename={0}'.format(filename)
-        )
+        user = request.user
+        response = IngredientAmountInRecipe.download_shopping_cart(user)
         return response
+
+    # ниже зеленым мой старый код, пока висит здесь до востребования
+
+    # @action(detail=True, methods=['POST', 'DELETE'])
+    # def favorite(self, request, pk=None):
+    #     if request.method == 'POST':
+    #         return self.add_new_object(Favorite, request.user, pk)
+
+    #     return self.delete_existing_object(Favorite, request.user, pk)
+
+    # @action(detail=True, methods=['POST', 'DELETE'])
+    # def shopping_cart(self, request, pk=None):
+    #     if request.method == 'POST':
+    #         return self.add_new_object(ShoppingCart, request.user, pk)
+
+    #     return self.delete_existing_object(ShoppingCart, request.user, pk)
+
+    # def add_new_object(self, model, user, pk):
+    #     """Метод для создания новой записи в модели.
+    #     Модель должна иметь поля user и recipe."""
+
+    #     if model.objects.filter(user=user, recipe=pk).exists():
+    #         return Response({
+    #             'errors': 'Ошибка - Рецепт уже добавлен в список'
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+    #     recipe = get_object_or_404(Recipe, id=pk)
+    #     model.objects.create(user=user, recipe=recipe)
+    #     serializer = ShortRecipesSerializer(recipe)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # def delete_existing_object(self, model, user, pk):
+    #     """Метод для удаления записи из модели.
+    #     Модель должна иметь поля user и recipe."""
+
+    #     obj = model.objects.filter(user=user, recipe=pk)
+    #     if not obj.exists():
+    #         return Response({
+    #             'errors': 'Ошибка - Рецепт уже удален'
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+
+    #     obj.delete()
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
