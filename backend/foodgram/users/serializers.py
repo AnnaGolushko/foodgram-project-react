@@ -123,24 +123,24 @@ class SubscribeWriteDeleteSerializer(serializers.ModelSerializer):
         if request.method == 'POST':
             if request.user == author:
                 raise serializers.ValidationError(
-                    'Нельзя подписаться на себя'
+                    {'errors': 'Нельзя подписаться на себя'}
                 )
             if Subscribe.objects.filter(
                 user=request.user, author=author
             ).exists():
                 raise serializers.ValidationError(
-                    'Подписка на этого автора уже есть'
+                    {'errors': 'Подписка на этого автора уже есть'}
                 )
         if request.method == 'DELETE':
             if request.user == author:
                 raise serializers.ValidationError(
-                    'Нельзя отписаться от себя'
+                    {'errors': 'Нельзя отписаться от себя'}
                 )
             if not Subscribe.objects.filter(
                 user=request.user, author=author
             ).exists():
                 raise serializers.ValidationError(
-                    'подписка на этого автора отсутствует'
+                    {'errors': 'подписка на этого автора отсутствует'}
                 )
         return data
 

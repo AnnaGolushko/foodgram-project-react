@@ -1,5 +1,4 @@
 from django.db.models.aggregates import Sum
-from django.http import HttpResponse
 
 from django.core import validators
 from django.db import models
@@ -168,12 +167,7 @@ class IngredientAmountInRecipe(models.Model):
              f'- {item["amount"]}\n'
              for item in shopping_list]
         )
-        filename = 'shopping_list.txt'
-        response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = (
-            'attachment; filename={0}'.format(filename)
-        )
-        return response
+        return content
 
 
 class Favorite(models.Model):
