@@ -44,7 +44,7 @@ def ingredient_bulk_creation(recipe, ingredients):
                 recipe=recipe,
                 ingredients_id=ingredient.get('id'),
                 amount=ingredient.get('amount'))
-            )
+        )
     IngredientAmountInRecipe.objects.bulk_create(ingredients_for_creation)
 
 

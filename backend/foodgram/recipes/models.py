@@ -97,7 +97,7 @@ class Recipe(models.Model):
         Tag,
         related_name='recipes',
         verbose_name='Тег рецепта'
-        )
+    )
 
     pub_date = models.DateTimeField(
         'Дата публикации',
@@ -159,7 +159,7 @@ class IngredientAmountInRecipe(models.Model):
             recipe__shopping_cart__user=user).values(
                 'ingredients__name',
                 'ingredients__measurement_unit'
-            ).annotate(amount=Sum('amount')).order_by()
+        ).annotate(amount=Sum('amount')).order_by()
 
         content = (
             [f'{item["ingredients__name"]} '

@@ -5,7 +5,7 @@ from .models import CustomUser, Subscribe
 
 class CustomUserAdmin(admin.ModelAdmin):
     """Настрока панели администратора для модели CustomUser."""
-    list_display = ('pk', 'email', 'username', 'first_name', 'last_name') 
+    list_display = ('pk', 'email', 'username', 'first_name', 'last_name')
     search_fields = ('email', 'username')
     list_filter = ('email', 'username')
 

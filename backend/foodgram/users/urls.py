@@ -8,6 +8,4 @@ app_name = 'users'
 router = DefaultRouter()
 router.register('', CustomUserViewSet)
 
-urlpatterns = [
-               path('', include(router.urls)),
-               ]
+urlpatterns = [path('', include(router.urls)), ]

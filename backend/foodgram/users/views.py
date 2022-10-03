@@ -33,9 +33,9 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
         author = get_object_or_404(User, id=id)
         serializer = SubscribeWriteDeleteSerializer(
-                data={'user': request.user, 'author': author},
-                context={'request': request}
-            )
+            data={'user': request.user, 'author': author},
+            context={'request': request}
+        )
 
         if self.request.method == 'POST':
             serializer.is_valid(raise_exception=True)
