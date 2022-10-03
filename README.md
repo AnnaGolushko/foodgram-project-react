@@ -30,18 +30,20 @@ DB_NAME=postgres # имя базы данных
 POSTGRES_USER=postgres # логин для подключения к базе данных
 POSTGRES_PASSWORD=postgres # пароль для подключения к БД (установите свой)
 DB_HOST=db # название сервиса (контейнера)
-DB_PORT=5432 # порт для подключения к БД 
+DB_PORT=5432 # порт для подключения к БД
+SECRET_KEY=________ # ключ для проекта django
 ```
 3. Запуск приложения в контейнерах Docker
 
 Приложение подготовлено к запуску в контейнерах:
 - db (контейнер базы данных)
-- web (контейнер API-приложения Django, WSGI-сервер gunicorn)
+- backend (контейнер API-приложения Django, WSGI-сервер gunicorn)
 - nginx (контейнер веб-сервера. Получает запросы, перенаправляет в приложение, раздает статику)
+- frontend (контейнер с SPA-приложением на React, штатно выключается самостоятельно)
 
-Скрипт сборки контейнеров docker-compose.yaml размещен в каталоге infra_sp2/infra/
+Скрипт сборки контейнеров docker-compose.yml размещен в каталоге fodgram-project-react/infra/
 
-Необходимо перейти в директорию infra_sp2/infra/ и выполнить команду
+Необходимо перейти в директорию fodgram-project-react/infra/ и выполнить команду
 
 1 вариант - тихий запуск без логов
 ```
@@ -62,35 +64,27 @@ sudo docker container ls
 
 4.1 Миграции
 ```
-sudo docker-compose exec web python manage.py makemigrations reviews
-sudo docker-compose exec web python manage.py migrate
+sudo docker-compose exec backend python manage.py makemigrations
+sudo docker-compose exec backend python manage.py migrate
 ```
 4.2 Создание суперпользователя для входа в административную панель
 ```
-sudo docker-compose exec web python manage.py createsuperuser
+sudo docker-compose exec backend python manage.py createsuperuser
 ```
 4.3 Сбор статических файлов
 ```
-sudo docker-compose exec web python manage.py collectstatic --no-input 
+sudo docker-compose exec backend python manage.py collectstatic --no-input 
 ```
 
 После этого приложение готово к работе.
 
 ### Загрузка тестовых данных
 При желании вы можете загрузить тестовые данные, которые заранее подготовлены.
-Команды необходимо выполнять в порядке как они указаны далее.
 
-Загрузить Пользователей в БД:
+Загрузить ингредиенты в БД:
 ```
-python manage.py load_users_data
+python manage.py load_ingredients_data
 ```
-
-
-
-
-
-
-
 
 ### Первый вход в систему
 После запуска проект будет доступен по URL:
