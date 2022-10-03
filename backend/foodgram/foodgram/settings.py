@@ -14,7 +14,6 @@ STATIC_URL = '/static/'
 # STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-# SECRET_KEY = 'qg6850*d49pxywtsx!q&(y47(4&%_$7^$yk$pidnuvx*7kw9ta'
 SECRET_KEY = os.environ.get('SECRET_KEY', default=None)
 
 DEBUG = False
@@ -147,15 +146,11 @@ AUTH_USER_MODEL = 'users.CustomUser'
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': False,
-    # если по чеклисту смотреть, то эти разрешения не требуются. страница рецепта и всех рецептов и так будут работать
-    # но в документации API указано что доступ необходим всем пользователям. А для отдельного профиля пользователя еще вдобавок указан Token (противоречие)
-    # по итогу непонятно как должно быть. но считаю что эти права излишни. и их стоит удалить. сделала чтобы если надо то чтобы были.
     'PERMISSIONS': {
         'user': ['rest_framework.permissions.AllowAny'],
         'user_list': ['rest_framework.permissions.AllowAny'],
     },
 }
-
 
 # CORS_URLS_REGEX = r'^/api/.*$'
 # CORS_ALLOWED_ORIGINS = [
