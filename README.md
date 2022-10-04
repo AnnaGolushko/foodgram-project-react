@@ -103,7 +103,7 @@ sudo docker-compose exec backend python manage.py loaddata foodgram_dump.json
 ### Первый вход в систему
 После запуска проект будет доступен по URL:
 - http://51.250.27.60/recipes/ - непосредственно API-интерфейс
-- http://51.250.27.60/admin/ - административная панель
+- http://51.250.27.60/admin/ - административная панель (email: admin@yandex.ru, пароль: admin)
 - http://51.250.27.60/api/docs/ - докуменация для API
 
 При запуске своего проекта укажите белый IP или DNS имя в соответствии с конфигурацией nginx.conf.
